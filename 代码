@@ -1,0 +1,167 @@
+public class UsersAction extends DispatchAction 
+{
+		private UsersDao usersDao;
+		private QxDao qxDao;
+		private DepartmentDao depDao;
+		public UsersDao getUsersDao() {
+		return usersDao;
+	}
+
+	public void setUsersDao(UsersDao usersDao) {
+		this.usersDao = usersDao;
+	}
+
+	public QxDao getQxDao() {
+		return qxDao;
+	}
+
+	public void setQxDao(QxDao qxDao) {
+		this.qxDao = qxDao;
+	}
+
+	public DepartmentDao getDepDao() {
+		return depDao;
+	}
+
+	public void setDepDao(DepartmentDao depDao) {
+		this.depDao = depDao;
+	}
+
+	public ActionForward doAdd(ActionMapping mapping, ActionForm form,
+			HttpServletRequest request, HttpServletResponse response) 
+{
+		UsersForm usersForm = (UsersForm) form;
+		Users users = new Users();
+		try {
+			BeanUtils.copyProperties(users, usersForm);
+			usersDao.save(users);
+		} catch (Exception e) {
+			e.printStackTrace();
+			request.setAttribute("error", "添加咨询");
+			return mapping.findForward("error");
+		}
+		return doListForAdmin(mapping, usersForm, request, response);
+	}
+	
+	public ActionForward toAdd(ActionMapping mapping, ActionForm form,
+			HttpServletRequest request, HttpServletResponse response) 
+{
+		try {
+			request.setAttribute("depList", depDao.getAll());
+			request.setAttribute("qxList", qxDao.getAll());
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			request.setAttribute("error", "添加咨询");
+			return mapping.findForward("error");
+		}
+		return mapping.findForward("toAdd");
+	}
+	
+	public ActionForward doListForAdmin(ActionMapping mapping, ActionForm form, HttpServletRequest request, HttpServletResponse response) {
+		String pageCurr = "1";
+		if(request.getParameter("pageCurr")!=null)pageCurr=request.getParameter("pageCurr");
+		try {
+			Map<String,Object> map = usersDao.getAll(pageCurr);
+			request.setAttribute("usersList", map.get("list"));
+			request.setAttribute("page", map.get("page"));
+		} catch (Exception e) {
+			e.printStackTrace();
+			request.setAttribute("error", "后台查询用户");
+			return mapping.findForward("error");
+		}
+		return mapping.findForward("listForAdmin");
+	}
+	public ActionForward doUpdateForPassword(ActionMapping mapping, ActionForm form, HttpServletRequest request, HttpServletResponse response) 
+{
+		String passwordNew = request.getParameter("passwordNew");
+		UsersForm usersForm = (UsersForm) form;
+		Users users = new Users();
+		PrintWriter out ;
+		try {
+			BeanUtils.copyProperties(users, usersForm);
+			users = usersDao.getById(users.getUsersId());
+		if(users.getUsersPassword().equals(usersForm.getUsersPassword())){
+			users.setUsersPassword(passwordNew);
+			usersDao.updatePassWord(users);
+			out = response.getWriter();
+			out.print("javaScript:alert('修改成功，请重新登录')");
+		request.getRequestDispatcher("login.jsp").include(request,response);
+				return null;
+			}
+			else{
+				out = response.getWriter();
+				out.print("javaScript:alert('密码不正确，为安全起见，请重新登录')");
+				request.getRequestDispatcher("login.jsp").include(request, response);
+				return null;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			request.setAttribute("error", "添加咨询");
+			return mapping.findForward("error");
+		}
+	}
+	public ActionForward doUpdateForAdminPassword(ActionMapping mapping, ActionForm form, HttpServletRequest request, HttpServletResponse response) {
+		UsersForm usersForm = (UsersForm) form;
+		Users users = new Users();
+		try {
+			BeanUtils.copyProperties(users, usersForm);
+			usersDao.updatePassWord(users);
+		} catch (Exception e) {
+			e.printStackTrace();
+			request.setAttribute("error", "添加咨询");
+			return mapping.findForward("error");
+		}
+		return doListForAdmin(mapping, usersForm, request, response);
+	}
+	public ActionForward toUpdateForAdminPassword(ActionMapping mapping, ActionForm form, HttpServletRequest request, HttpServletResponse response) {
+		UsersForm usersForm = (UsersForm) form;
+		Users users = new Users();
+		try {
+			BeanUtils.copyProperties(users, usersForm);
+			users = usersDao.getById(users.getUsersId());
+			request.setAttribute("users", users);
+		} catch (Exception e) {
+			e.printStackTrace();
+			request.setAttribute("error", "查询用户");
+			return mapping.findForward("error");
+		}
+		return mapping.findForward("toUpdateForAdminPassword");
+	}
+		
+	public ActionForward doDelete(ActionMapping mapping, ActionForm form,
+			HttpServletRequest request, HttpServletResponse response) {
+		UsersForm usersForm = (UsersForm) form;
+		Users users = new Users();
+		try {
+			BeanUtils.copyProperties(users, usersForm);
+			usersDao.delete(users.getUsersId());
+		} catch (Exception e) {
+			e.printStackTrace();
+			request.setAttribute("error", "查询用户");
+			return mapping.findForward("error");
+		}
+		return doListForAdmin(mapping, usersForm, request, response);
+	}
+	public ActionForward doLogin(ActionMapping mapping, ActionForm form,
+			HttpServletRequest request, HttpServletResponse response) {
+		
+		UsersForm usersForm = (UsersForm) form;
+		Users users = new Users();
+		try {
+			BeanUtils.copyProperties(users, usersForm);
+			users = usersDao.login(users);
+			if(users != null){
+				request.getSession().setAttribute("users", users);
+			}
+			else{
+				return mapping.findForward("NoLogin");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			request.setAttribute("error", "登录");
+			return mapping.findForward("error");
+		}
+		return mapping.findForward("adminManage");
+	}
+	}
